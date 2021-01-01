@@ -8,6 +8,6 @@ Simulation of populations relating to communicable diseases
 
 gnuplot be installed 
 
-path of gnuplot\bin be added to path , unde environment variables in windows
+path of gnuplot\bin be added to path , under environment variables in windows
 
 note: if codeblocks is being used , restart after installing gnuplot
