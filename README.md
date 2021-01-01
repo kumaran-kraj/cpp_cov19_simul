@@ -4,7 +4,10 @@ Simulation of populations relating to communicable diseases
 > each iteration a differential equaction dictates the shift in the population from the states
 > gnuplot is used to plot the data
 
-#Requirements:
+# Requirements:
+
 gnuplot be installed 
+
 path of gnuplot\bin be added to path , unde environment variables in windows
+
 note: if codeblocks is being used , restart after installing gnuplot
