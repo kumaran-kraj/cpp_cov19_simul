@@ -342,20 +342,12 @@ public:
     std::vector< std::vector<double> > populations;
     std::vector< double> time_vector;
     int vec_use;
-    double del_step;
     //--------
     double transim;
     double recov;
     double birth_rate;
-    double natural_death_rate;
+    double death_rate;
     double infected_death_rate;
-    double hospital_max;
-    double hospital_admit_usual;
-    double hospital_admit_infected;
-    double hospital_recov;
-    double hospital_death;
-    double P_hosp_recov_usual;
-    double P_hosp_recov_infected;
     
     //--------
     /*
@@ -365,17 +357,10 @@ public:
     {
         //
         transim=2.2;
-        recov=0.2;
+        recov=0.23;
         birth_rate=0.01;
-        natural_death_rate=0.01;
-        infected_death_rate=0.02;//2%
-        hospital_max=0.01;//beds percent to population
-        hospital_admit_usual=0.1;
-        hospital_admit_infected=0.5;
-        P_hosp_recov_usual=0.9;//90%
-        P_hosp_recov_infected=0.8;//80%
-        hospital_recov=0.5;
-        hospital_death=0.1;
+        death_rate=0.0095;
+        infected_death_rate=0.02;
         //
         
         time_vector.insert(time_vector.end(),0);//t start=0
@@ -393,174 +378,48 @@ public:
         
         
     }
-    double dSdt(double S,double I,double R,double Hin[],double Hout[],int j)
+    double dSdt(double S,double I,double R)
     {
         double outv;
-        outv=-transim*S*I +birth_rate*S-natural_death_rate*S ;
-        //--H--
-        outv-=Hin[0];
-        outv+=Hout[0]*P_hosp_recov_usual;//only recovered
-        //--H--
+        outv=-transim*S*I+birth_rate*S-death_rate*S;
         return outv;
     }
-    double dIdt(double S,double I,double R,double Hin[],double Hout[],int j)
+    double dIdt(double S,double I,double R)
     {
         double outv;
-        outv=transim*S*I-recov*I-infected_death_rate*I;
-        //--H--
-        outv-=Hin[1];
-        outv+=Hout[1]*P_hosp_recov_infected;
-        //--H--
+        outv=transim*S*I-recov*I -infected_death_rate*I;
         return outv;
     }
-    double dRdt(double S,double I,double R,double Hin[],double Hout[],int j)
+    double dRdt(double S,double I,double R)
     {
         double outv;
-        outv=recov*I +birth_rate*R-natural_death_rate*R;
-        //--H--
-        outv-=Hin[2];
-        outv+=Hout[2]*P_hosp_recov_usual;
-        //--H--
+        outv=recov*I +birth_rate*R-death_rate*R;
         return outv;
     }
-    double dDdt(double S,double I,double R,double Hin[],double Hout[],int j)
+    double dDdt(double S,double I,double R)
     {
         double outv;
-        //outv= +natural_death_rate*S+natural_death_rate*R+infected_death_rate*I;
-        outv= infected_death_rate*I;
-        outv+=Hout[0]*(1-P_hosp_recov_usual);
-        outv+=Hout[1]*(1-P_hosp_recov_infected);
-        outv+=Hout[2]*(1-P_hosp_recov_usual);
-        
+        outv=infected_death_rate*I ;//+death_rate*S+death_rate*R;
         return outv;
     }
-    double dHdt(double Hin[],double Hout[],int j)
-    {
-        
-        int hsp_stay_t=5;
-        double outv=0;
-        
-        //{
-        /*
-        double beds_left;
-        double S1;
-        double I1;
-        double R1;
-        
-            beds_left=(hospital_max-populations[4][j]);//h
-            S1=hospital_admit_usual*populations[0][j];//S
-            I1=hospital_admit_infected*populations[1][j];//I
-            R1=hospital_admit_usual*populations[2][j];//R
-            //IN
-            if(S1+I1<beds_left)
-            {
-                outv+=S1+I1;
-            }
-            else if(beds_left<=0)
-            {
-                outv+=0;
-            }
-            else
-            {
-                outv+=del_step*beds_left*0.92;//beds only reach to 92%
-            }
-        
-        //OUT
-        if(j-hsp_stay_t>0)
-        {
-            beds_left=(hospital_max-populations[4][j-hsp_stay_t]);//h
-            S1=hospital_admit_usual*populations[0][j-hsp_stay_t];//S
-            I1=hospital_admit_infected*populations[1][j-hsp_stay_t];//I
-            R1=hospital_admit_usual*populations[2][j-hsp_stay_t];//S
-            //IN
-            if(S1+I1+R1<beds_left)
-            {
-                outv-=(S1+I1+R1);
-            }
-            else if(beds_left<=0)
-            {
-                outv-=0;
-            }
-            else
-            {
-                outv-=del_step*beds_left*0.92;//beds only reach to 92%
-            }
-        }
-        else
-        {
-            outv-=0;
-        }
-        */
-        //}
-        
-        for (int i=0;i<3;i++)
-        {
-            outv+=Hin[i];
-            //std::cout<<"\n Houtv"<<outv;
-            outv-=Hout[i];
-            //std::cout<<" Houtv"<<outv;
-        }
-        //std::cout<<"\n Houtv"<<outv;
-        return outv;
-    }
-    
     
     void ODEsolve(double delt1,double t_st,int t_itr)
     {
-        del_step=delt1;
         time_vector[0]=t_st;
         std::vector<double> tmp1,dvdt1;
         for(int i=0;i<vec_use;i++ )
         {
             dvdt1.insert(dvdt1.end(),0);
         }
-        double transim_bk=transim;
+        
         for (int i=0;i<t_itr;i++)
         {
-            //--Q--
-            //{
-            //if(transim<transim_bk){transim=transim*0.001;}//quarentin
-            if((time_vector[i]>=0.5)&&(time_vector[i]<10))
-            {
-                
-                //std::cout<<"\n transim"<<transim;
-                if(transim<transim_bk){transim+=transim*0.09;}//quarentin
-                
-                else{transim=0.2;}
-            }
-            else
-            {
-                transim=transim_bk;
-                
-            }
-            //}
-            //--Q--
-            
-            //--H--
-            //{
-            int hsp_stay_t=5;
-            //double outv=0;
-            double beds_left;
-            double Hin[3]={0,0,0},Hout[3]={0,0,0};// 0 S, 1 I,2 R
-            double S1,Sa=0,Sr=0;
-            double I1,Ia=0,Ir=0;
-            double R1,Ra=0,Rr=0;
-            
-            double beds_ratio;
-           
-            
-            //}
-            //--H--
             
             //dvdt1[0]=2*(vt1[i]);
-            
-            dvdt1[0]=dSdt(populations[0][i],populations[1][i],populations[2][i],Hin,Hout,i);
-            dvdt1[1]=dIdt(populations[0][i],populations[1][i],populations[2][i],Hin,Hout,i);
-            dvdt1[2]=dRdt(populations[0][i],populations[1][i],populations[2][i],Hin,Hout,i);
-            
-            dvdt1[3]=dDdt(populations[0][i],populations[1][i],populations[2][i],Hin,Hout,i);
-            
-            dvdt1[4]=dHdt(Hin,Hout,i);
+            dvdt1[0]=dSdt(populations[0][i],populations[1][i],populations[2][i]);
+            dvdt1[1]=dIdt(populations[0][i],populations[1][i],populations[2][i]);
+            dvdt1[2]=dRdt(populations[0][i],populations[1][i],populations[2][i]);
+            dvdt1[3]=dDdt(populations[0][i],populations[1][i],populations[2][i]);
             //setting dvdt vector
             
             
@@ -578,46 +437,26 @@ public:
 };
 
 using namespace std;
-int main()
+double simul(std::vector<double> params)
 {
     //std::vector< std::vector<double> > populations;
     
     std::vector<double> initiial_val;
-    initiial_val.insert(initiial_val.end(),0.99);//S 0
-    initiial_val.insert(initiial_val.end(),0.01);//I 1
-    initiial_val.insert(initiial_val.end(),0.0);//R 2
-    initiial_val.insert(initiial_val.end(),0.0);//D 3
-    initiial_val.insert(initiial_val.end(),0.0);//H 4
-    initiial_val.insert(initiial_val.end(),0.0);//Q 5
+    initiial_val.insert(initiial_val.end(),0.99);//S
+    initiial_val.insert(initiial_val.end(),0.01);//I
+    initiial_val.insert(initiial_val.end(),0.0);//R
+    initiial_val.insert(initiial_val.end(),0.0);//D
     
-    //cout<<"\n";for(int i=0;i<initiial_val.size();i++){cout<<" "<<initiial_val[i];}
-    //initiial_val.clear();
-    //cout<<"\n";for(int i=0;i<initiial_val.size();i++){cout<<" "<<initiial_val[i];}
-    std::vector<double> tmp;
-    tmp.clear();
-    /*
-    for (int i=0;i<initiial_val.size();i++)
-    {
-        tmp.clear();
-        tmp.insert(tmp.end(),initiial_val[i]);
-        populations.insert(populations.end(),tmp);
-        //initiial_val.insert(initiial_val.end(),i);
-    }
-    
-    
-    
-    cout<<"\n";
-    for (int i=0;i<populations.size();i++)
-    {
-        for(int j=0;j<populations[i].size();j++)
-        {
-            cout<<" "<<populations[i][j];
-        }
-        cout<<"\n";
-    }
-    */
     model m1(initiial_val);
-    m1.ODEsolve(0.1,0,400);
+    m1.transim=params[0];
+    m1.recov=params[1];
+    m1.birth_rate=params[2];
+    m1.death_rate=params[3];
+    m1.infected_death_rate=params[4];
+    
+    
+    double t_del=0.4;
+    m1.ODEsolve(t_del,0,100);
     
     std::string dat_file="pts2.dat";
     gnuplotpipe gp;
@@ -629,13 +468,16 @@ int main()
     gp.send_line("\"pts2.dat\" using 1:3 smooth cspline title 'I', \\");
     gp.send_line("\"pts2.dat\" using 1:4 smooth cspline title 'R', \\");
     gp.send_line("\"pts2.dat\" using 1:5 smooth cspline title 'D', \\");
-    gp.send_line("\"pts2.dat\" using 1:6 smooth cspline title 'H' ");
-    for (int j=0;j<m1.populations[0].size();j++)
+    int jdelay=1;
+    for (int j=jdelay;j<m1.populations[0].size();j++)
     {
         ptsout<<m1.time_vector[j];
         for(int i=0;i<m1.populations.size();i++)
         {
-            ptsout<<" "<<m1.populations[i][j];
+            if(i!=3){ptsout<<" "<<m1.populations[i][j];}
+            else
+            //{ptsout<<" "<<(m1.populations[i][j]-m1.populations[i][j-jdelay])/t_del;}
+            {ptsout<<" "<<(m1.populations[i][j]);}
         }
          ptsout<<"\n";
     }
@@ -646,4 +488,14 @@ int main()
     
     std::cout<<"\n prgret";
     
+}
+int main()
+{
+    std::vector<double> inp_p;
+    inp_p.insert(inp_p.end(),2.2);
+    inp_p.insert(inp_p.end(),0.23);
+    inp_p.insert(inp_p.end(),0.01);
+    inp_p.insert(inp_p.end(),0.0095);
+    inp_p.insert(inp_p.end(),0.02);
+    double err=simul(inp_p);
 }

@@ -369,9 +369,9 @@ public:
         birth_rate=0.01;
         natural_death_rate=0.01;
         infected_death_rate=0.02;//2%
-        hospital_max=0.01;//beds percent to population
-        hospital_admit_usual=0.1;
-        hospital_admit_infected=0.5;
+        hospital_max=0.1;//beds percent to population
+        hospital_admit_usual=0.001;
+        hospital_admit_infected=0.01;
         P_hosp_recov_usual=0.9;//90%
         P_hosp_recov_infected=0.8;//80%
         hospital_recov=0.5;
@@ -496,11 +496,8 @@ public:
         for (int i=0;i<3;i++)
         {
             outv+=Hin[i];
-            //std::cout<<"\n Houtv"<<outv;
             outv-=Hout[i];
-            //std::cout<<" Houtv"<<outv;
         }
-        //std::cout<<"\n Houtv"<<outv;
         return outv;
     }
     
@@ -518,7 +515,6 @@ public:
         for (int i=0;i<t_itr;i++)
         {
             //--Q--
-            //{
             //if(transim<transim_bk){transim=transim*0.001;}//quarentin
             if((time_vector[i]>=0.5)&&(time_vector[i]<10))
             {
@@ -533,7 +529,6 @@ public:
                 transim=transim_bk;
                 
             }
-            //}
             //--Q--
             
             //--H--
@@ -546,8 +541,71 @@ public:
             double I1,Ia=0,Ir=0;
             double R1,Ra=0,Rr=0;
             
-            double beds_ratio;
-           
+            
+            double beds_freed=0;
+            beds_freed+=Hout[0]+Hout[1]+Hout[2];
+                beds_left=(hospital_max-populations[4][i]);//h
+                //beds_left+=beds_freed;
+                S1=hospital_admit_usual*populations[0][i];//S
+                I1=hospital_admit_infected*populations[1][i];//I
+                R1=hospital_admit_usual*populations[2][i];//R
+                //IN
+                if(S1+I1+R1<beds_left)
+                {
+                    //outv+=S1+I1+R1;
+                    Hin[0]+=S1;
+                    Hin[1]+=I1;
+                    Hin[2]+=R1;
+                }
+                else if(beds_left<=0)
+                {
+                    Hin[0]+=0;
+                    Hin[1]+=0;
+                    Hin[2]+=0;
+                }
+                else
+                {
+                    //outv+=del_step*beds_left*0.92;//beds only reach to 92%
+                    double scale_val_b=(del_step*beds_left*0.92)/(S1+I1+R1);
+                    Hin[0]+=S1*scale_val_b;
+                    Hin[1]+=I1*scale_val_b;
+                    Hin[2]+=R1*scale_val_b;
+                }
+            //OUT
+            if(i-hsp_stay_t>0)
+            {
+                beds_left=(hospital_max-populations[4][i-hsp_stay_t]);//h
+                S1=hospital_admit_usual*populations[0][i-hsp_stay_t];//S
+                I1=hospital_admit_infected*populations[1][i-hsp_stay_t];//I
+                R1=hospital_admit_usual*populations[2][i-hsp_stay_t];//S
+                //IN
+                if(S1+I1+R1<beds_left)
+                {
+                    //outv-=(S1+I1+R1);
+                    Hout[0]+=S1;
+                    Hout[1]+=I1;
+                    Hout[2]+=R1;
+                }
+                else if(beds_left<=0)
+                {
+                    //outv-=0;
+                    Hout[0]+=0;
+                    Hout[1]+=0;
+                    Hout[2]+=0;
+                }
+                else
+                {
+                    //outv-=del_step*beds_left*0.92;//beds only reach to 92%
+                    double scale_val_b=(del_step*beds_left*0.92)/(S1+I1+R1);
+                    Hout[0]+=S1*scale_val_b;
+                    Hout[1]+=I1*scale_val_b;
+                    Hout[2]+=R1*scale_val_b;
+                }
+            }
+            else
+            {
+                //outv-=0
+            }
             
             //}
             //--H--
